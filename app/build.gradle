@@ -1,0 +1,16 @@
+apply from: '../scripts/app.gradle'
+
+android {
+
+    defaultConfig {
+        applicationId "com.zfy.mantis"
+    }
+
+    dexOptions {
+        javaMaxHeapSize "4g"
+    }
+}
+
+dependencies {
+    implementation libs.appcompat_v7
+}
