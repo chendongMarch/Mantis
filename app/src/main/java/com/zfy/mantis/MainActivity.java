@@ -5,8 +5,12 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.tencent.mmkv.MMKV;
 import com.zfy.mantis.annotation.MView;
+import com.zfy.mantis.library.Mantis;
+import com.zfy.mantis.model.WxInfo;
 
 /**
  * CreateAt : 2019/1/10
@@ -31,14 +35,22 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.main_activity);
 
         MainActivity_MView.bindView(this);
+
+        Mantis.initKv(MMKV.defaultMMKV(), new JsonAdapterImpl());
         try {
-            tv.setText("new text");
+            UserInfoDao.putAge(10000);
+            tv.setText("new text " + UserInfoDao.getAge(0));
 
             btn.setOnClickListener(v -> {
-                tv.setText("click text");
+                UserInfoDao.putName("new name " + System.currentTimeMillis());
+                tv.setText("click text " + UserInfoDao.getName(""));
+                UserInfoDao.putWxInfo(new WxInfo(1000, "nickName"));
+                Toast.makeText(this, UserInfoDao.getWxInfo().toString(), Toast.LENGTH_LONG).show();
+
             });
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
 }
