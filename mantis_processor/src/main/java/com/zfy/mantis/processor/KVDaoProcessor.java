@@ -82,6 +82,7 @@ public class KVDaoProcessor extends AbstractProcessor {
                     // 添加 put 方法
                     builder.addMethod(createPutter(typeElement, variableElement));
                     builder.addMethod(createGetter(typeElement, variableElement));
+                    builder.addMethod(createRemover(typeElement, variableElement));
                     MethodSpec defaultGetter = createDefaultGetter(typeElement, variableElement);
                     if (defaultGetter != null) {
                         builder.addMethod(defaultGetter);
@@ -156,6 +157,17 @@ public class KVDaoProcessor extends AbstractProcessor {
             builder.addCode(String.format("getPreference().edit().put%s(\"%s_\" + \"%s\", %s);", getKvName(typeName), typeElement.getSimpleName(), memberName, memberName));
 
         }
+        return builder.addCode("\n").build();
+    }
+
+    // 添加 put 方法
+    private MethodSpec createRemover(TypeElement typeElement, VariableElement member) {
+        String memberName = member.getSimpleName().toString();
+        TypeName typeName = TypeName.get(member.asType());
+        MethodSpec.Builder builder = MethodSpec.methodBuilder("remove" + StringX.capitalize(memberName))
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
+                .addParameter(typeName, memberName)
+                .addCode(String.format("getPreference().edit().remove(\"%s_\" + \"%s\");", typeElement.getSimpleName(), memberName));
         return builder.addCode("\n").build();
     }
 
