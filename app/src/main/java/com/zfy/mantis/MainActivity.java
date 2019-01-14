@@ -36,13 +36,14 @@ public class MainActivity extends AppCompatActivity {
 
         MainActivity_MView.bindView(this);
 
+        MMKV.initialize(this);
         Mantis.initKv(MMKV.defaultMMKV(), new JsonAdapterImpl());
         try {
             UserInfoDao.putAge(10000);
-            tv.setText("new text " + UserInfoDao.getAge(0));
+            tv.setText("new text " + UserInfoDao.getAge());
             btn.setOnClickListener(v -> {
                 UserInfoDao.putName("new name " + System.currentTimeMillis());
-                tv.setText("click text " + UserInfoDao.getName(""));
+                tv.setText("click text " + UserInfoDao.getName());
                 UserInfoDao.putWxInfo(new WxInfo(1000, "nickName"));
                 Toast.makeText(this, UserInfoDao.getWxInfo().toString(), Toast.LENGTH_LONG).show();
             });

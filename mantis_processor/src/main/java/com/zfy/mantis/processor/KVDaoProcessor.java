@@ -200,7 +200,7 @@ public class KVDaoProcessor extends AbstractProcessor {
                 return "false";
             }
         } else if (name.toString().equals("java.lang.String")) {
-            return "";
+            return "\"\"";
         } else if (name.isBoxedPrimitive()) {
             return getDefaultValue(name.unbox());
         }
