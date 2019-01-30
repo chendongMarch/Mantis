@@ -1,0 +1,20 @@
+apply plugin: 'java-library'
+
+dependencies {
+    implementation 'com.google.auto.service:auto-service:1.0-rc2'
+    implementation 'com.squareup:javapoet:1.10.0'
+    implementation 'com.zfy:mantis-annotation:0.0.2'
+}
+
+sourceCompatibility = "8"
+targetCompatibility = "8"
+
+apply plugin: 'bintray-release'
+publish {
+    userOrg = 'zfy'
+    groupId = 'com.zfy'
+    artifactId = 'mantis-compiler'
+    publishVersion = '0.0.3'
+    desc = 'mantis-compiler'
+    website = 'https://github.com/chendongMarch/Mantis'
+}

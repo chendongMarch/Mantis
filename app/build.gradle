@@ -14,8 +14,8 @@ android {
 dependencies {
     implementation libs.appcompat_v7
     implementation project(':mantis_annotation')
-    implementation project(':mantis_library')
-    annotationProcessor project(':mantis_processor')
+    implementation project(':mantis_api')
+    annotationProcessor project(':mantis_compiler')
     implementation libs.gson
     implementation libs.mmkv
 }

@@ -8,3 +8,13 @@ dependencies {
 
 sourceCompatibility = "6"
 targetCompatibility = "6"
+
+apply plugin: 'bintray-release'
+publish {
+    userOrg = 'zfy'
+    groupId = 'com.zfy'
+    artifactId = 'mantis-annotation'
+    publishVersion = '0.0.2'
+    desc = 'mantis-annotation'
+    website = 'https://github.com/chendongMarch/Mantis'
+}

@@ -1,5 +1,0 @@
-apply from: '../scripts/library.gradle'
-
-dependencies {
-    implementation libs.appcompat_v7
-}
