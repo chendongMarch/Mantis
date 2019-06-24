@@ -14,7 +14,7 @@ publish {
     userOrg = 'zfy'
     groupId = 'com.zfy'
     artifactId = 'mantis-compiler'
-    publishVersion = '0.0.3'
+    publishVersion = '0.0.4'
     desc = 'mantis-compiler'
     website = 'https://github.com/chendongMarch/Mantis'
 }

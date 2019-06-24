@@ -33,6 +33,6 @@ public class MainPresenter {
     }
 
     public void init() {
-        Mantis.getInst().injectArgs(this);
+        Mantis.injectArgs(this);
     }
 }

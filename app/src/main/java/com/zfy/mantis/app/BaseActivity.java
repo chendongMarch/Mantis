@@ -12,6 +12,6 @@ import com.zfy.mantis.annotation.LookupArgs;
  */
 public class BaseActivity extends AppCompatActivity {
 
-    @LookupArgs(value = "testsss", desc = "我是父类") byte testParent;
+    @LookupArgs(value = "testsss", desc = "我是父类") protected String testParent;
 
 }

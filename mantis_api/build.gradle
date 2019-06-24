@@ -9,7 +9,7 @@ publish {
     userOrg = 'zfy'
     groupId = 'com.zfy'
     artifactId = 'mantis-api'
-    publishVersion = '0.0.2'
+    publishVersion = '0.0.4'
     desc = 'mantis-api'
     website = 'https://github.com/chendongMarch/Mantis'
 }

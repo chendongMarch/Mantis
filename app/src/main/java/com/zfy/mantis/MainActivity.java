@@ -45,9 +45,10 @@ public class MainActivity extends BaseActivity {
         getIntent().putExtra("test8", '1');
         getIntent().putExtra("test9", "hahahha");
         getIntent().putExtra("test10", new WxInfo(100L, "nickName"));
+        getIntent().putExtra("testsss", "父类");
 
         findViewById(R.id.btn).setOnClickListener(v -> {
-            Mantis.getInst().injectArgs(this);
+            Mantis.injectArgs(this);
             MainPresenter mainPresenter = new MainPresenter(this);
             mainPresenter.init();
             Log.e("chendong", "finish");

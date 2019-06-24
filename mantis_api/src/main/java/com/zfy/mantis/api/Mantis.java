@@ -10,23 +10,6 @@ import com.zfy.mantis.api.provider.ProviderCallback;
  */
 public class Mantis {
 
-    private volatile static Mantis sInst;
-
-    public static Mantis getInst() {
-        if (sInst == null) {
-            synchronized (Mantis.class) {
-                if (sInst == null) {
-                    sInst = new Mantis();
-                }
-            }
-        }
-        return sInst;
-    }
-
-    private Mantis() {
-        sAutowireService = new AutowireService();
-    }
-
     private static ProviderCallback sProviderCallback;
     private static AutowireService  sAutowireService;
 
@@ -39,7 +22,7 @@ public class Mantis {
         sProviderCallback = autoWireCallback;
     }
 
-    public void injectArgs(Object target) {
+    public static void injectArgs(Object target) {
         sAutowireService.autowire(target);
     }
 }
