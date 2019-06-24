@@ -18,7 +18,7 @@ public class MyApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        Mantis.getInst().setProviderCallback(new ProviderCallbackImpl() {
+        Mantis.init(new ProviderCallbackImpl() {
             @Override
             public IDataProvider getDataProvider(Object target) {
                 if (target instanceof MainPresenter) {

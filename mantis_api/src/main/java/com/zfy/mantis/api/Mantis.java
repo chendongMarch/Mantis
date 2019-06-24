@@ -24,21 +24,22 @@ public class Mantis {
     }
 
     private Mantis() {
-        mReceiveHandler = new AutowireService();
+        sAutowireService = new AutowireService();
     }
 
-    private ProviderCallback mAutoWireCallback;
-    private AutowireService  mReceiveHandler;
+    private static ProviderCallback sProviderCallback;
+    private static AutowireService  sAutowireService;
 
-    public ProviderCallback getProviderCallback() {
-        return mAutoWireCallback;
+    public static ProviderCallback getProviderCallback() {
+        return sProviderCallback;
     }
 
-    public void setProviderCallback(ProviderCallback autoWireCallback) {
-        mAutoWireCallback = autoWireCallback;
+    public static void init(ProviderCallback autoWireCallback) {
+        sAutowireService = new AutowireService();
+        sProviderCallback = autoWireCallback;
     }
 
-    public void inject(Object target) {
-        mReceiveHandler.autowire(target);
+    public void injectArgs(Object target) {
+        sAutowireService.autowire(target);
     }
 }

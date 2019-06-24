@@ -6,7 +6,7 @@ import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
-import com.zfy.mantis.annotation.LookUp;
+import com.zfy.mantis.annotation.LookupArgs;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.ProcessingEnvironment;
 import javax.annotation.processing.Processor;
 import javax.annotation.processing.RoundEnvironment;
@@ -25,6 +24,8 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
+import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
 
@@ -35,7 +36,7 @@ import javax.lang.model.util.Types;
  * @author chendong
  */
 @AutoService(Processor.class)
-public class AutowiredProcessor extends AbstractProcessor {
+public class AutowiredProcessor extends BaseAbstractProcessor {
 
     @Override
     public synchronized void init(ProcessingEnvironment processingEnv) {
@@ -44,29 +45,42 @@ public class AutowiredProcessor extends AbstractProcessor {
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
-        return Collections.singleton(LookUp.class.getCanonicalName());
+        return Collections.singleton(LookupArgs.class.getCanonicalName());
     }
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         // 被注解的所有元素
-        Set<? extends Element> elements = roundEnv.getElementsAnnotatedWith(LookUp.class);
+        Set<? extends Element> elements = roundEnv.getElementsAnnotatedWith(LookupArgs.class);
         // 分类成 Map<TypeElement, List<VariableElement>>
+        // 也就是 类 + 底下的注解元素
         Map<TypeElement, List<VariableElement>> categories = categories(elements);
+        // 所有类
+        Set<TypeElement> typeElements = categories.keySet();
         // 解析生成对应得类
-        for (TypeElement typeElement : categories.keySet()) {
+        for (TypeElement typeElement : typeElements) {
+            // debug = "";
             List<VariableElement> variableElements = categories.get(typeElement);
             if (variableElements == null) {
                 continue;
             }
+
             // 生成类
             Name originClazzName = typeElement.getSimpleName();
-            TypeSpec typeSpec = TypeSpec.classBuilder(originClazzName + MantisConsts.CLASS_SUFFIX)
-                    .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
-                    .addSuperinterface(ClassName.bestGuess(MantisConsts.ISYRINGE_CLASS_NAME))
-                    // void inject(Object target);
-                    .addMethod(createInjectMethod(typeElement, variableElements))
-                    .build();
+            TypeSpec.Builder builder = TypeSpec.classBuilder(originClazzName + MantisConsts.CLASS_SUFFIX)
+                    .addModifiers(Modifier.PUBLIC)
+                    .addSuperinterface(ClassName.bestGuess(MantisConsts.ISYRINGE_CLASS_NAME));
+
+            boolean hasParent = false;
+            TypeElement parentType = findParentType(typeElement, typeElements);
+            if (parentType != null) {
+                hasParent = true;
+                // debug = parentType.toString();
+                builder.superclass(ClassName.bestGuess(parentType.toString() + MantisConsts.CLASS_SUFFIX));
+            }
+            builder.addMethod(createInjectMethod(hasParent, typeElement, variableElements));
+
+            TypeSpec typeSpec = builder.build();
             JavaFile javaFile = JavaFile.builder(processingEnv.getElementUtils().getPackageOf(typeElement).getQualifiedName().toString(), typeSpec).build();
             try {
                 javaFile.writeTo(processingEnv.getFiler());
@@ -77,24 +91,29 @@ public class AutowiredProcessor extends AbstractProcessor {
         return true;
     }
 
+    private String debug = "";
 
-    private MethodSpec createInjectMethod(TypeElement typeElement, List<VariableElement> variableElements) {
+    private MethodSpec createInjectMethod(boolean hasParent, TypeElement typeElement, List<VariableElement> variableElements) {
         String dataAwClassName = "com.zfy.mantis.api.provider.IDataProvider";
         String objAwClassName = "com.zfy.mantis.api.provider.IObjProvider";
         String mantisClassName = "com.zfy.mantis.api.Mantis";
         String callbackClassName = "com.zfy.mantis.api.provider.ProviderCallback";
-        MethodSpec.Builder builder = MethodSpec.methodBuilder(MantisConsts.ISYRINGE_METHOD_NAME)
-                .returns(void.class)
+        MethodSpec.Builder builder = MethodSpec.methodBuilder(MantisConsts.ISYRINGE_METHOD_NAME);
+        if (hasParent) {
+            builder.addStatement("super." + MantisConsts.ISYRINGE_METHOD_NAME + "(" + MantisConsts.ISYRINGE_METHOD_PARAM_NAME + ")");
+        }
+        builder.returns(void.class)
+                .addComment(debug)
                 .addAnnotation(Override.class)
                 .addParameter(Object.class, MantisConsts.ISYRINGE_METHOD_PARAM_NAME)
-                .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
-                .addStatement("$T callback = $T.getInst().getProviderCallback()", ClassName.bestGuess(callbackClassName), ClassName.bestGuess(mantisClassName))
+                .addModifiers(Modifier.PUBLIC)
+                .addStatement("$T callback = $T.getProviderCallback()", ClassName.bestGuess(callbackClassName), ClassName.bestGuess(mantisClassName))
                 .addStatement("$T dataProvider = callback.getDataProvider(target)", ClassName.bestGuess(dataAwClassName))
                 .addStatement("$T objProvider = callback.getObjProvider(target,dataProvider)", ClassName.bestGuess(objAwClassName))
                 .addStatement("$T thiz = ($T) target", typeElement.asType(), typeElement.asType());
         // 循环绑定数据
         for (VariableElement variableElement : variableElements) {
-            LookUp annotation = variableElement.getAnnotation(LookUp.class);
+            LookupArgs annotation = variableElement.getAnnotation(LookupArgs.class);
             if (annotation == null) {
                 continue;
             }
@@ -146,9 +165,9 @@ public class AutowiredProcessor extends AbstractProcessor {
     private String getTypeStr(VariableElement element) {
         TypeName typeName = TypeName.get(element.asType());
         if (typeName.isBoxedPrimitive()) {
-            return StringX.capitalize(typeName.unbox().toString());
+            return AptUtil.capitalize(typeName.unbox().toString());
         } else if (typeName.isPrimitive()) {
-            return StringX.capitalize(typeName.toString());
+            return AptUtil.capitalize(typeName.toString());
         } else if (typeName.toString().equals("java.lang.String")) {
             return "String";
         } else {
@@ -159,6 +178,21 @@ public class AutowiredProcessor extends AbstractProcessor {
             }
         }
         return null;
+    }
+
+
+    private TypeElement findParentType(TypeElement typeElement, Set<TypeElement> parents) {
+        TypeMirror type;
+        while (true) {
+            type = typeElement.getSuperclass();
+            if (type.getKind() == TypeKind.NONE) {
+                return null;
+            }
+            typeElement = (TypeElement) ((DeclaredType) type).asElement();
+            if (parents.contains(typeElement)) {
+                return typeElement;
+            }
+        }
     }
 
 
