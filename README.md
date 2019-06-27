@@ -123,12 +123,12 @@ Mantis.inject(int group, Object object);
 @LookUp("/service/my/service") MyService service;
 
 // 根据 组 + Class 生成对应的对象
-// 将会生成 MyService 类型的对象
+// 将会生成 MyViewModel 类型的对象
 @LookUp(group = 100) MyViewModel viewModel;
 
 // 根据 组 + Class 生成对应的对象
 // 将会生成 MainPresenter 类型的对象
 // 可以使用接口持有变量，注入时使用 clazz 对应的子类
 @LookUp(group = 100, clazz = MainPresenter.class) IPresenter presenter;
-```
+```®®
  
