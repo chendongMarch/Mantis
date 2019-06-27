@@ -13,7 +13,6 @@ android {
 
 dependencies {
     implementation libs.appcompat_v7
-    implementation project(':mantis_annotation')
     implementation project(':test')
     implementation project(':mantis_api')
     annotationProcessor project(':mantis_compiler')

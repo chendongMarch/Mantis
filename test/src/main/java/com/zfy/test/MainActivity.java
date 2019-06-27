@@ -4,7 +4,7 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 
-import com.zfy.mantis.annotation.LookupArgs;
+import com.zfy.mantis.annotation.Lookup;
 
 /**
  * CreateAt : 2019/1/10
@@ -15,15 +15,15 @@ import com.zfy.mantis.annotation.LookupArgs;
 
 public class MainActivity extends AppCompatActivity {
 
-    @LookupArgs(value = "test1", desc = "我是名字")   byte    test1;
-    @LookupArgs(value = "test2", required = true) short   test2;
-    @LookupArgs("test3")                          int     test3;
-    @LookupArgs("test4")                          long    test4;
-    @LookupArgs("test5")                          float   test5;
-    @LookupArgs("test6")                          double  test6;
-    @LookupArgs("test7")                          boolean test7;
-    @LookupArgs("test8")                          char    test8;
-    @LookupArgs("test9")                          String  test9;
+    @Lookup(value = "test1", desc = "我是名字")   byte    test1;
+    @Lookup(value = "test2", required = true) short   test2;
+    @Lookup("test3")                          int     test3;
+    @Lookup("test4")                          long    test4;
+    @Lookup("test5")                          float   test5;
+    @Lookup("test6")                          double  test6;
+    @Lookup("test7")                          boolean test7;
+    @Lookup("test8")                          char    test8;
+    @Lookup("test9")                          String  test9;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {

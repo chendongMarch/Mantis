@@ -1,4 +1,4 @@
-package com.zfy.mantis;
+package com.zfy.mantis.model;
 
 import android.util.Log;
 

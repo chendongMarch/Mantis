@@ -6,7 +6,7 @@ import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
-import com.zfy.mantis.annotation.LookupArgs;
+import com.zfy.mantis.annotation.Lookup;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -25,6 +25,7 @@ import javax.lang.model.element.Name;
 import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
+import javax.lang.model.type.MirroredTypeException;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Types;
@@ -45,13 +46,13 @@ public class AutowiredProcessor extends BaseAbstractProcessor {
 
     @Override
     public Set<String> getSupportedAnnotationTypes() {
-        return Collections.singleton(LookupArgs.class.getCanonicalName());
+        return Collections.singleton(Lookup.class.getCanonicalName());
     }
 
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
         // 被注解的所有元素
-        Set<? extends Element> elements = roundEnv.getElementsAnnotatedWith(LookupArgs.class);
+        Set<? extends Element> elements = roundEnv.getElementsAnnotatedWith(Lookup.class);
         // 分类成 Map<TypeElement, List<VariableElement>>
         // 也就是 类 + 底下的注解元素
         Map<TypeElement, List<VariableElement>> categories = categories(elements);
@@ -59,24 +60,23 @@ public class AutowiredProcessor extends BaseAbstractProcessor {
         Set<TypeElement> typeElements = categories.keySet();
         // 解析生成对应得类
         for (TypeElement typeElement : typeElements) {
-            // debug = "";
+
             List<VariableElement> variableElements = categories.get(typeElement);
             if (variableElements == null) {
                 continue;
             }
-
             // 生成类
             Name originClazzName = typeElement.getSimpleName();
-            TypeSpec.Builder builder = TypeSpec.classBuilder(originClazzName + MantisConsts.CLASS_SUFFIX)
+            TypeSpec.Builder builder = TypeSpec.classBuilder(originClazzName + MantisConst.CLASS_SUFFIX)
                     .addModifiers(Modifier.PUBLIC)
-                    .addSuperinterface(ClassName.bestGuess(MantisConsts.ISYRINGE_CLASS_NAME));
-
+                    .addSuperinterface(ClassName.bestGuess(MantisConst.SYRINGE_INTERFACE));
+            // 首先注入父类
             boolean hasParent = false;
             TypeElement parentType = findParentType(typeElement, typeElements);
             if (parentType != null) {
                 hasParent = true;
                 // debug = parentType.toString();
-                builder.superclass(ClassName.bestGuess(parentType.toString() + MantisConsts.CLASS_SUFFIX));
+                builder.superclass(ClassName.bestGuess(parentType.toString() + MantisConst.CLASS_SUFFIX));
             }
             builder.addMethod(createInjectMethod(hasParent, typeElement, variableElements));
 
@@ -97,63 +97,117 @@ public class AutowiredProcessor extends BaseAbstractProcessor {
         String dataAwClassName = "com.zfy.mantis.api.provider.IDataProvider";
         String objAwClassName = "com.zfy.mantis.api.provider.IObjProvider";
         String mantisClassName = "com.zfy.mantis.api.Mantis";
-        String callbackClassName = "com.zfy.mantis.api.provider.ProviderCallback";
-        MethodSpec.Builder builder = MethodSpec.methodBuilder(MantisConsts.ISYRINGE_METHOD_NAME);
+        String lookupOptsClassName = "com.zfy.mantis.annotation.LookupOpts";
+        String dataProviderFactoryClassName = "com.zfy.mantis.api.provider.IDataProviderFactory";
+
+        String lookOptsName = "lookupOpts";
+
+        MethodSpec.Builder builder = MethodSpec.methodBuilder(MantisConst.METHOD_NAME);
+        // 调用 super 方法
         if (hasParent) {
-            builder.addStatement("super." + MantisConsts.ISYRINGE_METHOD_NAME + "(" + MantisConsts.ISYRINGE_METHOD_PARAM_NAME + ")");
+            builder.addStatement("super." + MantisConst.METHOD_NAME + "(" + MantisConst.METHOD_PARAM_GROUP + "," + MantisConst.METHOD_PARAM_TARGET + ")");
         }
+
+        // 添加通用的数据源
+        ClassName mantisClass = ClassName.bestGuess(mantisClassName);
         builder.returns(void.class)
-                .addComment(debug)
                 .addAnnotation(Override.class)
-                .addParameter(Object.class, MantisConsts.ISYRINGE_METHOD_PARAM_NAME)
+                .addParameter(TypeName.INT, MantisConst.METHOD_PARAM_GROUP)
+                .addParameter(Object.class, MantisConst.METHOD_PARAM_TARGET)
                 .addModifiers(Modifier.PUBLIC)
-                .addStatement("$T callback = $T.getProviderCallback()", ClassName.bestGuess(callbackClassName), ClassName.bestGuess(mantisClassName))
-                .addStatement("$T dataProvider = callback.getDataProvider(target)", ClassName.bestGuess(dataAwClassName))
-                .addStatement("$T objProvider = callback.getObjProvider(target,dataProvider)", ClassName.bestGuess(objAwClassName))
-                .addStatement("$T thiz = ($T) target", typeElement.asType(), typeElement.asType());
+                .addComment("初始化 opts")
+                .addStatement("$T $L = $T.obtainOpts()", ClassName.bestGuess(lookupOptsClassName), lookOptsName, mantisClass)
+                .addStatement("$L.setTarget($L);", lookOptsName, MantisConst.METHOD_PARAM_TARGET)
+                .addComment("数据获取工厂函数")
+                .addStatement("$T factory = $T.getDataProviderFactory()", ClassName.bestGuess(dataProviderFactoryClassName), mantisClass)
+                .addStatement("$T dataProvider = factory.create($L)", ClassName.bestGuess(dataAwClassName), MantisConst.METHOD_PARAM_TARGET)
+                .addStatement("$T objProvider = $T.getObjProvider();", ClassName.bestGuess(objAwClassName), mantisClass)
+                .addStatement("$T thiz = ($T) $L", typeElement.asType(), typeElement.asType(), MantisConst.METHOD_PARAM_TARGET);
+
+
+        Map<Integer, List<VariableElement>> map = new HashMap<>();
+
         // 循环绑定数据
         for (VariableElement variableElement : variableElements) {
-            LookupArgs annotation = variableElement.getAnnotation(LookupArgs.class);
+            Lookup annotation = variableElement.getAnnotation(Lookup.class);
             if (annotation == null) {
                 continue;
             }
-            Name varName = variableElement.getSimpleName();
-            TypeName typeName = TypeName.get(variableElement.asType());
-            String typeStr = getTypeStr(variableElement);
-            if (isNotEmpty(annotation.desc())) {
-                builder.addComment(annotation.desc());
+            int type = annotation.group();
+            if (type <= 0 && type != Lookup.DEF_GROUP) {
+                throw new RuntimeException("group " + type + " must > 0");
             }
-            if (null == typeStr) {
-                // obj
-                builder.addStatement(String.format("thiz.%s = (%s)objProvider.getObject(\"%s\", %s.class)",
-                        varName,
-                        typeName,
-                        annotation.value(),
-                        typeName));
-            } else {
-                // data
-                if (typeStr.equalsIgnoreCase("Parcelable")) {
-                    builder.addStatement(String.format("thiz.%s = dataProvider.get%s(\"%s\")",
-                            varName,
-                            typeStr,
-                            annotation.value()));
+            List<VariableElement> list = map.get(type);
+            if (list == null) {
+                list = new ArrayList<>();
+            }
+            if (!list.contains(variableElement)) {
+                list.add(variableElement);
+            }
+            map.put(type, list);
+        }
+        for (Integer key : map.keySet()) {
+            List<VariableElement> list = map.get(key);
+            builder.beginControlFlow("if ($L == $L)", MantisConst.METHOD_PARAM_GROUP, key);
+            for (VariableElement variableElement : list) {
+                Lookup annotation = variableElement.getAnnotation(Lookup.class);
+                if (annotation == null) {
+                    continue;
+                }
+                Name varName = variableElement.getSimpleName();
+                TypeName typeName = TypeName.get(variableElement.asType());
+                String typeStr = getTypeStr(variableElement);
+                if (isNotEmpty(annotation.desc())) {
+                    builder.addComment(annotation.desc());
+                }
+                if ((null == typeStr || typeStr.equalsIgnoreCase("Parcelable")) && annotation.obj()) {
+                    typeStr = null;
+                }
+                if (null == typeStr) {
+                    // obj
+
+
+                    builder
+                            .addStatement("$L.setAnnotation(\"$L\",$L, $T.class)",
+                                    lookOptsName,
+                                    varName,
+                                    key,
+                                    getClazz(annotation))
+                            .addStatement("$L.setField($T.class,\"$L\")",
+                                    lookOptsName,
+                                    variableElement.asType(),
+                                    varName)
+                            .addStatement("thiz.$L = ($T)objProvider.getObject($L)",
+                                    varName,
+                                    variableElement.asType(),
+                                    lookOptsName);
                 } else {
                     // data
-                    builder.addStatement(String.format("thiz.%s = dataProvider.get%s(\"%s\", thiz.%s)",
-                            varName,
-                            typeStr,
-                            annotation.value(),
-                            varName));
+                    if (typeStr.equalsIgnoreCase("Parcelable")) {
+                        builder.addStatement("thiz.$L = dataProvider.get$L(\"$L\")",
+                                varName,
+                                typeStr,
+                                annotation.value());
+                    } else {
+                        // data
+                        builder.addStatement("thiz.$L = dataProvider.get$L(\"$L\", thiz.$L)",
+                                varName,
+                                typeStr,
+                                annotation.value(),
+                                varName);
+                    }
+                }
+                if (annotation.required()) {
+                    if (!typeName.isPrimitive()) {
+                        builder.beginControlFlow("if(thiz.$L == null)", varName)
+                                .addStatement("throw new RuntimeException(\"<$L.$L> is null\")", typeElement.getSimpleName(), varName)
+                                .endControlFlow();
+                    }
                 }
             }
-            if (annotation.required()) {
-                if (!typeName.isPrimitive()) {
-                    builder.beginControlFlow(String.format("if(thiz.%s == null)", varName))
-                            .addStatement(String.format("throw new RuntimeException(\"<%s.%s> is null\")", typeElement.getSimpleName(), varName))
-                            .endControlFlow();
-                }
-            }
+            builder.endControlFlow();
         }
+
         return builder.build();
     }
 
@@ -161,6 +215,14 @@ public class AutowiredProcessor extends BaseAbstractProcessor {
         return charSequence != null && charSequence.length() > 0;
     }
 
+    private TypeMirror getClazz(Lookup annotation) {
+        try {
+            annotation.clazz();
+        } catch (MirroredTypeException mte) {
+            return mte.getTypeMirror();
+        }
+        return null;
+    }
 
     private String getTypeStr(VariableElement element) {
         TypeName typeName = TypeName.get(element.asType());
@@ -172,7 +234,7 @@ public class AutowiredProcessor extends BaseAbstractProcessor {
             return "String";
         } else {
             Types typeUtils = processingEnv.getTypeUtils();
-            TypeMirror parcelableType = processingEnv.getElementUtils().getTypeElement(MantisConsts.PARCELABLE).asType();
+            TypeMirror parcelableType = processingEnv.getElementUtils().getTypeElement(MantisConst.PARCELABLE).asType();
             if (typeUtils.isSubtype(element.asType(), parcelableType)) {
                 return "Parcelable";
             }

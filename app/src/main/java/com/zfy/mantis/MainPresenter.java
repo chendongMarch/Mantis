@@ -1,7 +1,8 @@
 package com.zfy.mantis;
 
-import com.zfy.mantis.annotation.LookupArgs;
+import com.zfy.mantis.annotation.Lookup;
 import com.zfy.mantis.api.Mantis;
+import com.zfy.mantis.model.MyService;
 import com.zfy.mantis.model.WxInfo;
 
 /**
@@ -13,18 +14,18 @@ import com.zfy.mantis.model.WxInfo;
 
 public class MainPresenter {
 
-    @LookupArgs(value = "test1", desc = "我是名字")   byte  test1;
-    @LookupArgs(value = "test2", required = true) short test2;
+    @Lookup(value = "test1", desc = "我是名字")   byte  test1;
+    @Lookup(value = "test2", required = true) short test2;
 
-    @LookupArgs("test3")  int       test3;
-    @LookupArgs("test4")  long      test4;
-    @LookupArgs("test5")  float     test5;
-    @LookupArgs("test6")  double    test6;
-    @LookupArgs("test7")  boolean   test7;
-    @LookupArgs("test8")  char      test8;
-    @LookupArgs("test9")  String    test9;
-    @LookupArgs("test10") WxInfo    test10;
-    @LookupArgs("test11") MyService test11;
+    @Lookup("test3")  int       test3;
+    @Lookup("test4")  long      test4;
+    @Lookup("test5")  float     test5;
+    @Lookup("test6")  double    test6;
+    @Lookup("test7")  boolean   test7;
+    @Lookup("test8")  char      test8;
+    @Lookup("test9")  String    test9;
+    @Lookup("test10") WxInfo    test10;
+    @Lookup("test11") MyService test11;
 
     public MainActivity mMainActivity;
 
@@ -33,6 +34,6 @@ public class MainPresenter {
     }
 
     public void init() {
-        Mantis.injectArgs(this);
+        Mantis.inject(this);
     }
 }

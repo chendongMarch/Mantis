@@ -13,6 +13,7 @@ import android.os.Parcelable;
  */
 public class BundleProvider implements IDataProvider {
 
+
     public static BundleProvider use(Object target) {
         Bundle bundle = null;
         if (target instanceof Activity) {
@@ -32,10 +33,36 @@ public class BundleProvider implements IDataProvider {
         return new BundleProvider(bundle);
     }
 
+    public BundleProvider reset(Bundle bundle) {
+        if (bundle == null) {
+            return null;
+        }
+        this.bundle = bundle;
+        return this;
+    }
+
+    public BundleProvider reset(Object target) {
+        Bundle bundle = null;
+        if (target instanceof Activity) {
+            bundle = ((Activity) target).getIntent().getExtras();
+        } else if (target instanceof Fragment) {
+            bundle = ((Fragment) target).getArguments();
+        } else if (target instanceof android.support.v4.app.Fragment) {
+            bundle = ((android.support.v4.app.Fragment) target).getArguments();
+        }
+        if (bundle == null) {
+            bundle = new Bundle();
+        }
+        return reset(bundle);
+    }
+
     private Bundle bundle;
 
     private BundleProvider(Bundle bundle) {
         this.bundle = bundle;
+    }
+
+    public BundleProvider() {
     }
 
     @Override

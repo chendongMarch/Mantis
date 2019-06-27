@@ -14,7 +14,7 @@ publish {
     userOrg = 'zfy'
     groupId = 'com.zfy'
     artifactId = 'mantis-annotation'
-    publishVersion = '0.0.3'
+    publishVersion = '0.0.5'
     desc = 'mantis-annotation'
     website = 'https://github.com/chendongMarch/Mantis'
 }

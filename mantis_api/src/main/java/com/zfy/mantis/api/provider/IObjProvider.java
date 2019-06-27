@@ -1,5 +1,7 @@
 package com.zfy.mantis.api.provider;
 
+import com.zfy.mantis.annotation.LookupOpts;
+
 /**
  * CreateAt : 2019/1/29
  * Describe :
@@ -8,5 +10,5 @@ package com.zfy.mantis.api.provider;
  */
 public interface IObjProvider {
 
-    Object getObject(String key, Class<?> clazz);
+    Object getObject(LookupOpts opts);
 }

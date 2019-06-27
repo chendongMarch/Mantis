@@ -1,6 +1,9 @@
 package com.zfy.mantis.api;
 
-import com.zfy.mantis.api.provider.ProviderCallback;
+import com.zfy.mantis.annotation.Lookup;
+import com.zfy.mantis.annotation.LookupOpts;
+import com.zfy.mantis.api.provider.IDataProviderFactory;
+import com.zfy.mantis.api.provider.IObjProvider;
 
 /**
  * CreateAt : 2019/1/14
@@ -10,19 +13,44 @@ import com.zfy.mantis.api.provider.ProviderCallback;
  */
 public class Mantis {
 
-    private static ProviderCallback sProviderCallback;
+    private static ThreadLocal<LookupOpts> sLookupOptsThreadLocal;
+
     private static AutowireService  sAutowireService;
 
-    public static ProviderCallback getProviderCallback() {
-        return sProviderCallback;
-    }
+    private static IObjProvider         sObjProvider;
+    private static IDataProviderFactory sDataProviderFactory;
 
-    public static void init(ProviderCallback autoWireCallback) {
+    public static void init(IDataProviderFactory dataProviderFactory, IObjProvider provider) {
+        sLookupOptsThreadLocal = new ThreadLocal<>();
+        sLookupOptsThreadLocal.set(new LookupOpts());
         sAutowireService = new AutowireService();
-        sProviderCallback = autoWireCallback;
+        sObjProvider = provider;
+        sDataProviderFactory = dataProviderFactory;
     }
 
-    public static void injectArgs(Object target) {
-        sAutowireService.autowire(target);
+    public static IObjProvider getObjProvider() {
+        if (sObjProvider == null) {
+            throw new IllegalStateException("set IDataProviderFactory first ~");
+        }
+        return sObjProvider;
+    }
+
+    public static IDataProviderFactory getDataProviderFactory() {
+        if (sDataProviderFactory == null) {
+            return IDataProviderFactory.BUNDLE_PROVIDER;
+        }
+        return sDataProviderFactory;
+    }
+
+    public static LookupOpts obtainOpts() {
+        return sLookupOptsThreadLocal.get();
+    }
+
+    public static void inject(int type, Object target) {
+        sAutowireService.injectArgs(type, target);
+    }
+
+    public static void inject(Object target) {
+        sAutowireService.injectArgs(Lookup.DEF_GROUP, target);
     }
 }

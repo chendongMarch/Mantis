@@ -2,6 +2,8 @@ package com.zfy.mantis.api;
 
 import android.util.LruCache;
 
+import com.zfy.mantis.annotation.Lookup;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,27 +15,37 @@ import java.util.List;
  */
 public class AutowireService {
 
-    private LruCache<String, ISyringe> mSyringeCache;
+    private LruCache<String, ISyringe> mSyringeLruCache;
     private List<String>               mBlackList;
 
     public AutowireService() {
-        mSyringeCache = new LruCache<>(66);
+        mSyringeLruCache = new LruCache<>(66);
         mBlackList = new ArrayList<>();
     }
 
-    public void autowire(Object instance) {
+    public void injectArgs(int type, Object instance) {
+        ISyringe injector = findInjector(instance);
+        if (injector != null) {
+            injector.inject(type, instance);
+        }
+    }
+
+    private ISyringe findInjector(Object instance) {
         String className = instance.getClass().getName();
         try {
             if (!mBlackList.contains(className)) {
-                ISyringe syringe = mSyringeCache.get(className);
-                if (null == syringe) {  // No cache.
-                    syringe = (ISyringe) Class.forName(instance.getClass().getName() + "$$MantisAutoWired").getConstructor().newInstance();
+                ISyringe injector = mSyringeLruCache.get(className);
+                if (null == injector) {
+                    // No cache.
+                    injector = (ISyringe) Class.forName(instance.getClass().getName() + Lookup.SEP + Lookup.SUFFIX).getConstructor().newInstance();
                 }
-                syringe.inject(instance);
-                mSyringeCache.put(className, syringe);
+                mSyringeLruCache.put(className, injector);
+                return injector;
             }
+            return null;
         } catch (Exception ex) {
             mBlackList.add(className);
         }
+        return null;
     }
 }
