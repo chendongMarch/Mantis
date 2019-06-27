@@ -2,8 +2,8 @@ apply from: '../scripts/library.gradle'
 
 dependencies {
     compileOnly libs.appcompat_v7
-//    api 'com.zfy:mantis-annotation:0.0.5'
-    api project(':mantis_annotation')
+    api 'com.zfy:mantis-annotation:0.0.6'
+//    api project(':mantis_annotation')
 
 }
 
@@ -12,7 +12,7 @@ publish {
     userOrg = 'zfy'
     groupId = 'com.zfy'
     artifactId = 'mantis-api'
-    publishVersion = '0.0.5'
+    publishVersion = '0.0.6'
     desc = 'mantis-api'
     website = 'https://github.com/chendongMarch/Mantis'
 }

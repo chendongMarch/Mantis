@@ -3,9 +3,9 @@ apply plugin: 'java-library'
 dependencies {
     implementation 'com.google.auto.service:auto-service:1.0-rc2'
     implementation 'com.squareup:javapoet:1.10.0'
-   //  implementation 'com.zfy:mantis-annotation:0.0.3'
+     implementation 'com.zfy:mantis-annotation:0.0.6'
 
-    implementation project(':mantis_annotation')
+//    implementation project(':mantis_annotation')
 }
 
 sourceCompatibility = "8"
@@ -16,7 +16,7 @@ publish {
     userOrg = 'zfy'
     groupId = 'com.zfy'
     artifactId = 'mantis-compiler'
-    publishVersion = '0.0.5'
+    publishVersion = '0.0.6'
     desc = 'mantis-compiler'
     website = 'https://github.com/chendongMarch/Mantis'
 }

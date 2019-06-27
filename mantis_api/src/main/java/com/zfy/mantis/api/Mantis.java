@@ -46,11 +46,11 @@ public class Mantis {
         return sLookupOptsThreadLocal.get();
     }
 
-    public static void inject(int type, Object target) {
-        sAutowireService.injectArgs(type, target);
+    public static void inject(int group, Object target) {
+        sAutowireService.inject(group, target);
     }
 
     public static void inject(Object target) {
-        sAutowireService.injectArgs(Lookup.DEF_GROUP, target);
+        sAutowireService.inject(Lookup.DEF_GROUP, target);
     }
 }

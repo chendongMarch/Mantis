@@ -23,10 +23,10 @@ public class AutowireService {
         mBlackList = new ArrayList<>();
     }
 
-    public void injectArgs(int type, Object instance) {
+    public void inject(int group, Object instance) {
         ISyringe injector = findInjector(instance);
         if (injector != null) {
-            injector.inject(type, instance);
+            injector.inject(group, instance);
         }
     }
 
