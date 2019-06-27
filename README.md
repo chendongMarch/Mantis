@@ -1,5 +1,9 @@
 # Mantis
 
+![](http://s3.hixd.com/139728.jpeg)
+
+
+依赖注入框架，支持注入 `Intent/Bundle` 中的传输数据，支持注入任何对象，可自定义注入规则；
 
 ## 引入
 
@@ -7,7 +11,6 @@
 api 'com.zfy:mantis-api:0.0.6'
 annatationProcessor 'com.zfy:mantis-compiler:0.0.6'
 ```
-
 
 
 ## 初始化
@@ -130,5 +133,5 @@ Mantis.inject(int group, Object object);
 // 将会生成 MainPresenter 类型的对象
 // 可以使用接口持有变量，注入时使用 clazz 对应的子类
 @LookUp(group = 100, clazz = MainPresenter.class) IPresenter presenter;
-```®®
+```
  
