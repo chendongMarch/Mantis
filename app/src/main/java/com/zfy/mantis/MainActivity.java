@@ -41,6 +41,22 @@ public class MainActivity<D extends String> extends BaseActivity<D> implements C
     @Lookup(group = 11) MyService2Impl test15;
     @Lookup("KEY")      MyService2Impl test16;
 
+
+    // 从 Intent 中获取 Key 为 KEY_INT_VALUE 的数据，默认值为 100
+    @Lookup("KEY_INT_VALUE") int dataValue = 100;
+
+    @Lookup(
+            group = 101, // 分组，注解的属性会被分组，每次注入一个组，避免重复注入
+            value = "KEY", // 字符串类型的 key
+            numKey = 100, // 整型类型的 key
+            clazz = MyService2Impl.class, // 注入的 class
+            extra = 123, // 标记为，可以使用二进制表示32个标记位
+            obj = false, // 强制作为对象注入
+            required = true, // 如果注入的结果为空，将会抛出 npe
+            desc = "我是注释信息" // 自动生成相关的注释信息
+    )
+    MyService2 objValue;
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

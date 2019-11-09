@@ -2,13 +2,22 @@
 
 ![](http://s3.hixd.com/139728.jpeg)
 
-自动依赖注入框架，为了在编写的代码的时候把一些初始化的操作抽离出来，然后使用注解声明如何初始化；
+本类库主要做一件事情，通过 `APT` 自动生成代码将注解在 `Field` 上面的信息收集起来，然后传递给使用者，使用者根据注解的信息选择性的生成或或者数据；
+
+- 字段的声明和初始化代码不在一起，代码混乱，容易忘记初始化；
+- 创建对象时需要做一些统一操作，比如 `init()` 等；
+- 做到注解后就可以使用，避免重复代码编写；
+
+注入分为了两种，数据注入和对象注入
+
+- 数据注入指的是从 `Intent` `Bundle` 等参数中获取传递数据的过程；
+- 对象注入指的是根据注解的信息创建新对象的过程；
 
 ## 引入
 
 ```gradle
-api 'com.zfy:mantis-api:0.1.0'
-annatationProcessor 'com.zfy:mantis-compiler:0.1.1'
+api 'com.zfy:mantis-api:0.1.2'
+annatationProcessor 'com.zfy:mantis-compiler:0.1.2'
 ```
 
 
@@ -18,11 +27,48 @@ annatationProcessor 'com.zfy:mantis-compiler:0.1.1'
 Mantis.init();
 ```
 
+## 启动注入
+
+```java
+// 默认注入，会注入未指定 group 的所有属性
+Mantis.inject(Object object);
+// 分组注入，注入指定 group 的所有属性
+Mantis.inject(int group, Object object);
+```
+
+
+
+## 注解的使用
+
+数据注入
+
+```java
+// 从 Intent 中获取 Key 为 KEY_INT_VALUE 的数据，默认值为 100
+@Lookup("KEY_INT_VALUE") int dataValue = 100;
+```
+
+对象注入
+
+```java
+@Lookup(
+        group = 101, // 分组，注解的属性会被分组，每次注入一个组，避免重复注入
+        value = "KEY", // 字符串类型的 key
+        numKey = 100, // 整型类型的 key
+        clazz = MyService2Impl.class, // 注入的 class
+        extra = 123, // 标记为，可以使用二进制表示32个标记位
+        obj = false, // 强制作为对象注入
+        required = true, // 如果注入的结果为空，将会抛出 npe
+        desc = "我是注释信息" // 自动生成相关的注释信息
+)
+MyService2 objValue;
+```
 
 ## 添加 Mapper
 
+`Mapper` 是处理注解信息的一系列函数的集合，默认添加了支持从 `Activity` / `Fragment` 注入数据的 `Mapper`，添加自定的 `Mapper` 就可以灵活的扩展自动注入的过程；
+
 ```java
-// 让 Presenter 可以从 Intent 里面获取数据
+// 让 Presenter 支持使用注解直接从关联的 View 从获取数据
 Mantis.addDataProvider(new Mapper<IDataProvider>() {
 
     @Override
@@ -40,7 +86,7 @@ Mantis.addDataProvider(new Mapper<IDataProvider>() {
     }
 });
 
-// 自动初始化对象
+// 自动初始化对象，根据注入的 class 自动创建对象
 Mantis.addObjProvider(new Mapper<IObjProvider>() {
     @Override
     public int priority() {
@@ -58,14 +104,6 @@ Mantis.addObjProvider(new Mapper<IObjProvider>() {
 });
 ```
 
-## 启动注入
-
-```java
-// 默认注入，会注入未指定 group 的所有属性
-Mantis.inject(Object object);
-// 分组注入，注入指定 group 的所有属性
-Mantis.inject(int group, Object object);
-```
 
 ## 使用
 
