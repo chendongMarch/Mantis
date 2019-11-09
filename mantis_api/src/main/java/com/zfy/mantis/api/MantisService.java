@@ -13,12 +13,12 @@ import java.util.List;
  *
  * @author chendong
  */
-public class AutowireService {
+public class MantisService {
 
     private LruCache<String, ISyringe> mSyringeLruCache;
     private List<String>               mBlackList;
 
-    public AutowireService() {
+    public MantisService() {
         mSyringeLruCache = new LruCache<>(66);
         mBlackList = new ArrayList<>();
     }

@@ -2,95 +2,60 @@
 
 ![](http://s3.hixd.com/139728.jpeg)
 
-
-依赖注入框架，支持注入 `Intent/Bundle` 中的传输数据，支持注入任何对象，可自定义注入规则；
+自动依赖注入框架，为了在编写的代码的时候把一些初始化的操作抽离出来，然后使用注解声明如何初始化；
 
 ## 引入
 
 ```gradle
-api 'com.zfy:mantis-api:0.0.6'
-annatationProcessor 'com.zfy:mantis-compiler:0.0.6'
+api 'com.zfy:mantis-api:0.1.0'
+annatationProcessor 'com.zfy:mantis-compiler:0.1.1'
 ```
 
 
 ## 初始化
 
-初始化需要提供两个东西：
+```java
+Mantis.init();
+```
 
-- `IDataProviderFactory` **数据传输对象提供者**的构造工厂，用来完成从 `Intent/Bundle` 中获取数据；如果仅仅需要支持在 `Activity` 和 `Fragment` 中注解数据，则可以直接使用 `IDataProviderFactory.BUNDLE_PROVIDER` 不需要自己去实现复杂的逻辑；   
 
-- `IObjProvider` **自定义对象提供者**，用来完成根据注解自动创建对象的操作；
-
+## 添加 Mapper
 
 ```java
-Mantis.init(new IDataProviderFactory() {
+// 让 Presenter 可以从 Intent 里面获取数据
+Mantis.addDataProvider(new Mapper<IDataProvider>() {
+
     @Override
-    public IDataProvider create(Object target) {
-        // 工厂创建 DataProvider 
-        // 负责从 Bundle 和 Intent 里面取数据
-        return null;
+    public int priority() {
+        return 100;
     }
-}, new IObjProvider() {
+
     @Override
-    public Object getObject(LookupOpts opts) {
-        // 按照注解的数据，使用自己的规则来生成对象
-        return null;
+    public IDataProvider map(LookupOpts opts) {
+        if (!(opts.target instanceof MainPresenter)) {
+            return null;
+        }
+        MainPresenter target = ((MainPresenter) opts.target);
+        return BundleDataProvider.use(target.mMainActivity.getIntent().getExtras());
     }
 });
-```
 
-为了更好的体现用法，提供一个比较复杂的例子：
-
-
-DataProviderFactory
-
-```java
-public static class IDataProviderImpl implements IDataProviderFactory {
-    BundleProvider provider = new BundleProvider();
+// 自动初始化对象
+Mantis.addObjProvider(new Mapper<IObjProvider>() {
     @Override
-    public IDataProvider create(Object target) {
-        // MVP - 给 Presenter 注解对应的传输数据
-        if (target instanceof MvpPresenter) {
-            IMvpView view = ((MvpPresenter) target).getView();
-            return provider.reset(view.getData());
-        }
-      	 // MVVM 给 ViewModel 注解对应的传输数据
-        if (target instanceof MvvmViewModel) {
-            return provider.reset(((MvvmViewModel) target).getData());
-        }
-        provider.reset(target);
-        return provider;
+    public int priority() {
+        return 400;
     }
-}
-```
-
-ObjProvider
-
-```java
-public static class IObjProviderImpl implements IObjProvider {
     @Override
-    public Object getObject(LookupOpts opts) {
-        // 获取 class
-        Class<?> clazz = opts.clazz != null ? opts.clazz : opts.fieldClazz;
-        // 获取对应分组
-        int group = opts.group;
-        // 获取 target
-        Object target = opts.target;
-        // 生成 repo
-        if (group == Const.REPO && AppRepository.class.isAssignableFrom(clazz)) {
-            return X.newInst(clazz);
+    public IObjProvider map(LookupOpts value) {
+        // 如果字段类型是 MyService 的子类，就初始化
+        if(!MantisUtil.isSubClass(value.fieldClazz, MyService.class)){
+            return null;
         }
-        // class + target 指定在哪里生成什么样子的 viewModel
-        if (group == Const.VM && MvvmViewModel.class.isAssignableFrom(clazz)) {
-            return useViewModel(target, clazz);
-        }
-        // 生成 ARouter Service
-        if (IProvider.class.isAssignableFrom(clazz)) {
-            return provideARouterService(target, opts.key, clazz);
-        }
-        return null;
+        Class<?> clazz = value.fieldClazz;
+        return MantisUtil.newInstance(clazz);
     }
-}
+});
 ```
 
 ## 启动注入

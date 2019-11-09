@@ -1,1 +1,1 @@
-include ':app', ':mantis_compiler', ':mantis_annotation', ':mantis_api', ':test'
+include ':app', ':mantis_compiler',  ':mantis_api',':mantis_annotation', ':test'

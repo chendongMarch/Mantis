@@ -2,33 +2,35 @@ package com.zfy.mantis.api.provider;
 
 import android.os.Parcelable;
 
+import com.zfy.mantis.annotation.LookupOpts;
+
 /**
  * CreateAt : 2019/1/29
- * Describe :
+ * Describe : 用来取传递的数据
  *
  * @author chendong
  */
 public interface IDataProvider {
 
-    boolean getBoolean(String key, boolean def);
+    boolean getBoolean(LookupOpts opts, boolean def);
 
-    byte getByte(String key, byte def);
+    byte getByte(LookupOpts opts, byte def);
 
-    short getShort(String key, short def);
+    short getShort(LookupOpts opts, short def);
 
-    int getInt(String key, int def);
+    int getInt(LookupOpts opts, int def);
 
-    long getLong(String key, long def);
+    long getLong(LookupOpts opts, long def);
 
-    float getFloat(String key, float def);
+    float getFloat(LookupOpts opts, float def);
 
-    double getDouble(String key, double def);
+    double getDouble(LookupOpts opts, double def);
 
-    char getChar(String key, char def);
+    char getChar(LookupOpts opts, char def);
 
-    String getString(String key, String def);
+    String getString(LookupOpts opts, String def);
 
-    <T extends Parcelable> T getParcelable(String key);
+    <T extends Parcelable> T getParcelable(LookupOpts opts);
 
-    <T> T getObject(String key, Class<T> clazz);
+    <T> T getObject(LookupOpts opts, Class<T> clazz);
 }

@@ -69,14 +69,17 @@ public class AutowiredProcessor extends BaseAbstractProcessor {
             Name originClazzName = typeElement.getSimpleName();
             TypeSpec.Builder builder = TypeSpec.classBuilder(originClazzName + MantisConst.CLASS_SUFFIX)
                     .addModifiers(Modifier.PUBLIC)
-                    .addSuperinterface(ClassName.bestGuess(MantisConst.SYRINGE_INTERFACE));
+                    .addJavadoc(debug);
+            builder.addSuperinterface(ClassName.bestGuess(MantisConst.SYRINGE_INTERFACE));
+
             // 首先注入父类
             boolean hasParent = false;
             TypeElement parentType = findParentType(typeElement, typeElements);
             if (parentType != null) {
+                debug = parentType.toString() + ", " + debug;
                 hasParent = true;
-                // debug = parentType.toString();
                 builder.superclass(ClassName.bestGuess(parentType.toString() + MantisConst.CLASS_SUFFIX));
+            } else {
             }
             builder.addMethod(createInjectMethod(hasParent, typeElement, variableElements));
 
@@ -98,9 +101,8 @@ public class AutowiredProcessor extends BaseAbstractProcessor {
         String objAwClassName = "com.zfy.mantis.api.provider.IObjProvider";
         String mantisClassName = "com.zfy.mantis.api.Mantis";
         String lookupOptsClassName = "com.zfy.mantis.annotation.LookupOpts";
-        String dataProviderFactoryClassName = "com.zfy.mantis.api.provider.IDataProviderFactory";
 
-        String lookOptsName = "lookupOpts";
+        String lookOptsName = "opts";
 
         MethodSpec.Builder builder = MethodSpec.methodBuilder(MantisConst.METHOD_NAME);
         // 调用 super 方法
@@ -110,20 +112,19 @@ public class AutowiredProcessor extends BaseAbstractProcessor {
 
         // 添加通用的数据源
         ClassName mantisClass = ClassName.bestGuess(mantisClassName);
+
         builder.returns(void.class)
                 .addAnnotation(Override.class)
                 .addParameter(TypeName.INT, MantisConst.METHOD_PARAM_GROUP)
                 .addParameter(Object.class, MantisConst.METHOD_PARAM_TARGET)
                 .addModifiers(Modifier.PUBLIC)
-                .addComment("初始化 opts")
                 .addStatement("$T $L = $T.obtainOpts()", ClassName.bestGuess(lookupOptsClassName), lookOptsName, mantisClass)
-                .addStatement("$L.setTarget($L);", lookOptsName, MantisConst.METHOD_PARAM_TARGET)
-                .addComment("数据获取工厂函数")
-                .addStatement("$T factory = $T.getDataProviderFactory()", ClassName.bestGuess(dataProviderFactoryClassName), mantisClass)
-                .addStatement("$T dataProvider = factory.create($L)", ClassName.bestGuess(dataAwClassName), MantisConst.METHOD_PARAM_TARGET)
-                .addStatement("$T objProvider = $T.getObjProvider();", ClassName.bestGuess(objAwClassName), mantisClass)
-                .addStatement("$T thiz = ($T) $L", typeElement.asType(), typeElement.asType(), MantisConst.METHOD_PARAM_TARGET);
-
+                .addStatement("$L.$L = $L", lookOptsName, MantisConst.METHOD_PARAM_TARGET, MantisConst.METHOD_PARAM_TARGET)
+                .addComment("")
+                .addStatement("$T dataProvider", ClassName.bestGuess(dataAwClassName))
+                .addStatement("$T objProvider", ClassName.bestGuess(objAwClassName))
+                .addStatement("$L thiz = ($L) $L", typeElement.getSimpleName(), typeElement.getSimpleName(), MantisConst.METHOD_PARAM_TARGET)
+                .addComment("");
 
         Map<Integer, List<VariableElement>> map = new HashMap<>();
 
@@ -133,69 +134,71 @@ public class AutowiredProcessor extends BaseAbstractProcessor {
             if (annotation == null) {
                 continue;
             }
-            int type = annotation.group();
-            if (type <= 0 && type != Lookup.DEF_GROUP) {
-                throw new RuntimeException("group " + type + " must > 0");
-            }
-            List<VariableElement> list = map.get(type);
+            int group = annotation.group();
+
+            List<VariableElement> list = map.get(group);
             if (list == null) {
                 list = new ArrayList<>();
             }
             if (!list.contains(variableElement)) {
                 list.add(variableElement);
             }
-            map.put(type, list);
+            map.put(group, list);
         }
-        for (Integer key : map.keySet()) {
-            List<VariableElement> list = map.get(key);
-            builder.beginControlFlow("if ($L == $L)", MantisConst.METHOD_PARAM_GROUP, key);
+        for (Integer group : map.keySet()) {
+            List<VariableElement> list = map.get(group);
+            builder.beginControlFlow("if ($L == $L)", MantisConst.METHOD_PARAM_GROUP, group);
+            builder.addStatement("$L.group = $L", lookOptsName, group);
             for (VariableElement variableElement : list) {
                 Lookup annotation = variableElement.getAnnotation(Lookup.class);
                 if (annotation == null) {
                     continue;
                 }
+                String key = annotation.value();
+                int numKey = annotation.numKey();
                 Name varName = variableElement.getSimpleName();
                 TypeName typeName = TypeName.get(variableElement.asType());
                 String typeStr = getTypeStr(variableElement);
-                if (isNotEmpty(annotation.desc())) {
-                    builder.addComment(annotation.desc());
-                }
                 if ((null == typeStr || typeStr.equalsIgnoreCase("Parcelable")) && annotation.obj()) {
                     typeStr = null;
                 }
+                builder.addComment("AUTO INJECT $L $L", varName, isNotEmpty(annotation.desc()) ? annotation.desc() : "");
+                builder.addStatement("$L.set($L, \"$L\", $T.class, \"$L\", $T.class, $L)",
+                        lookOptsName,
+                        numKey,
+                        key,
+                        getClazz(annotation),
+                        variableElement,
+                        variableElement.asType(),
+                        annotation.extra());
+
                 if (null == typeStr) {
                     // obj
-
-
-                    builder
-                            .addStatement("$L.setAnnotation(\"$L\",$L, $T.class)",
-                                    lookOptsName,
-                                    varName,
-                                    key,
-                                    getClazz(annotation))
-                            .addStatement("$L.setField($T.class,\"$L\")",
-                                    lookOptsName,
-                                    variableElement.asType(),
-                                    varName)
-                            .addStatement("thiz.$L = ($T)objProvider.getObject($L)",
+                    builder.addStatement("objProvider = $T.getObjProvider($L)", mantisClass, lookOptsName);
+                    builder.beginControlFlow("if (objProvider != null)");
+                    builder.addStatement("thiz.$L = ($T)objProvider.getObject($L)",
                                     varName,
                                     variableElement.asType(),
                                     lookOptsName);
+                    builder.endControlFlow();
                 } else {
+                    builder.addStatement("dataProvider = $T.getDataProvider($L)", mantisClass, lookOptsName);
+                    builder.beginControlFlow("if (dataProvider != null)");
                     // data
                     if (typeStr.equalsIgnoreCase("Parcelable")) {
-                        builder.addStatement("thiz.$L = dataProvider.get$L(\"$L\")",
+                        builder.addStatement("thiz.$L = dataProvider.get$L($L)",
                                 varName,
                                 typeStr,
-                                annotation.value());
+                                lookOptsName);
                     } else {
                         // data
-                        builder.addStatement("thiz.$L = dataProvider.get$L(\"$L\", thiz.$L)",
+                        builder.addStatement("thiz.$L = dataProvider.get$L($L, thiz.$L)",
                                 varName,
                                 typeStr,
-                                annotation.value(),
+                                lookOptsName,
                                 varName);
                     }
+                    builder.endControlFlow();
                 }
                 if (annotation.required()) {
                     if (!typeName.isPrimitive()) {
@@ -207,6 +210,7 @@ public class AutowiredProcessor extends BaseAbstractProcessor {
             }
             builder.endControlFlow();
         }
+        builder.addStatement("$L.clear()", lookOptsName);
 
         return builder.build();
     }

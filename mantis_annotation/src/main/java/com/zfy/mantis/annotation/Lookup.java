@@ -15,14 +15,22 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.CLASS)
 public @interface Lookup {
 
-    int DEF_GROUP = -100;
+    // 默认分组
+    int DEF_GROUP = -1;
 
-    String AUTO   = "AUTO";
+    String AUTO     = "_";
+    int    AUTO_NUM = -1;
     String SEP    = "_";
     String SUFFIX = "LOOKUP";
 
     // 注入的 key
     String value() default AUTO;
+
+    // 注入的 int 类型的 key
+    int numKey() default AUTO_NUM;
+
+    // 附带参数
+    int extra() default 0;
 
     // 本次注入的类型的分组，使用分组将注入分成多个模块
     int group() default DEF_GROUP;
